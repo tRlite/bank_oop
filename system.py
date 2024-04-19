@@ -339,11 +339,14 @@ class System():
             if self.date % 7 in {6, 0} or not (WORK_HOURS[0] <= self.time // MIN_PER_HOUR < WORK_HOURS[1]) or \
                 (self.date % 7 == 5 and not(WORK_HOURS_FR[0] <= self.time // MIN_PER_HOUR < WORK_HOURS_FR[1])):
                 
+                if (0 < self.date % 7 < 5 and self.time == WORK_HOURS[1] * MIN_PER_HOUR) or (self.date % 7 == 5 and self.time == WORK_HOURS_FR[1] * MIN_PER_HOUR):
+                    self.calc_stats()  
+
                 self.lost_clients.extend(self.bank.drop_q())
                 self.time_to_client = None
                 self.inc_time()
                 processed_clients = self.bank.make_step('home')
-                self.processed_clients.extend(processed_clients)                          
+                self.processed_clients.extend(processed_clients)           
                 
             elif BREAK_HOURS[0] <= self.time // MIN_PER_HOUR < BREAK_HOURS[1]:
                 self.inc_time()
@@ -408,7 +411,7 @@ class System():
 
     def calc_stats(self):
         """Пересчет статистик после очередного шага моделирования"""
-        if self.date % 7 < 5 and self.time == WORK_HOURS[1] * MIN_PER_HOUR or self.date % 7 == 5 and self.time == WORK_HOURS_FR[1] * MIN_PER_HOUR:
+        if (0 < self.date % 7 < 5 and self.time == WORK_HOURS[1] * MIN_PER_HOUR) or (self.date % 7 == 5 and self.time == WORK_HOURS_FR[1] * MIN_PER_HOUR):
             self.bank.statistics['profit'] -= 2000 * self.n_clerks # salary
         self.bank.statistics['max_q_len'] = max(self.q_lens)
         self.bank.statistics['min_q_len'] = min(self.q_lens)
@@ -432,9 +435,9 @@ class System():
 
         self.bank.statistics['avg_waiting_time'] = round(sum_waiting_time / max(client_num, 1), 3)
 
-        work_time = 0 
-        for d in range(self.date - 1):
-            if d % 7 in {6, 7}: 
+        work_time = 0
+        for d in range(1, self.date):
+            if d % 7 in {6, 0}: 
                 continue
             elif d % 7 == 5:
                 work_time += 6 * MIN_PER_HOUR
@@ -447,7 +450,7 @@ class System():
                 work_time += 2 * MIN_PER_HOUR + max(self.time - BREAK_HOURS[1] * MIN_PER_HOUR, 0)
             elif self.time > WORK_HOURS_FR[1] * MIN_PER_HOUR:
                 work_time += 6 * MIN_PER_HOUR
-        elif self.date % 7 < 5:
+        elif 0 < self.date % 7 < 5:
             if WORK_HOURS[0] * MIN_PER_HOUR <= self.time <= BREAK_HOURS[0] * MIN_PER_HOUR:
                 work_time += self.time - 10 * MIN_PER_HOUR
             elif BREAK_HOURS[0] * MIN_PER_HOUR <= self.time <= WORK_HOURS[1] * MIN_PER_HOUR:
